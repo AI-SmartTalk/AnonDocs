@@ -1,0 +1,158 @@
+{
+  "info": {
+    "name": "AnonDocs API",
+    "description": "API collection for document anonymization",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "documentId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Anonymize Raw Text",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Hi, my name is John Smith. You can reach me at john.smith@email.com or call (555) 123-4567. I live at 123 Main Street, New York.\",\n  \"provider\": \"ollama\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/documents/anonymize-text",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "documents", "anonymize-text"]
+        }
+      }
+    },
+    {
+      "name": "Upload Document",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    var jsonData = pm.response.json();",
+              "    pm.collectionVariables.set('documentId', jsonData.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": []
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/documents/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "documents", "upload"]
+        }
+      }
+    },
+    {
+      "name": "Start Anonymization",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"provider\": \"openai\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/documents/{{documentId}}/anonymize",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "documents", "{{documentId}}", "anonymize"]
+        }
+      }
+    },
+    {
+      "name": "Get Document Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/documents/{{documentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "documents", "{{documentId}}"]
+        }
+      }
+    },
+    {
+      "name": "Get Anonymized Document",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/documents/{{documentId}}/anonymized",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "documents", "{{documentId}}", "anonymized"]
+        }
+      }
+    },
+    {
+      "name": "List All Documents",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/documents",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "documents"]
+        }
+      }
+    },
+    {
+      "name": "Delete Document",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/documents/{{documentId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "documents", "{{documentId}}"]
+        }
+      }
+    }
+  ]
+}

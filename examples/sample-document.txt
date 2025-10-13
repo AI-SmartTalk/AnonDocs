@@ -1,0 +1,47 @@
+Sample Document for Testing AnonDocs
+
+CONFIDENTIAL MEDICAL RECORD
+
+Patient Information:
+Name: John Michael Smith
+Date of Birth: March 15, 1985
+Address: 123 Oak Street, Apartment 4B, San Francisco, CA 94102
+Phone: +1 (555) 123-4567
+Email: john.smith@email.com
+Social Security Number: 123-45-6789
+
+Emergency Contact:
+Name: Sarah Jane Smith
+Relationship: Spouse
+Phone: +1 (555) 987-6543
+
+Medical History:
+Patient John Michael Smith visited our clinic on January 10, 2024, for a routine checkup. 
+The patient, who resides at 123 Oak Street in San Francisco, reported mild symptoms.
+
+Insurance Information:
+Provider: Blue Cross Blue Shield
+Policy Number: BC12345678
+Group Number: GRP987654
+
+Physician Notes:
+Dr. Emily Johnson examined the patient on 01/10/2024. Follow-up appointment scheduled 
+for February 15, 2024, at 2:30 PM.
+
+Prescription:
+Patient ID: P-2024-001
+Medication prescribed by Dr. Johnson at San Francisco Medical Center.
+
+Billing Information:
+Account Number: ACC-789456123
+Payment due: $250.00
+Credit Card on file: VISA ending in 4532
+
+This document contains personally identifiable information and should be handled with care.
+For questions, contact Dr. Emily Johnson at ejohnson@sfmedical.org or call (555) 234-5678.
+
+Office Location:
+San Francisco Medical Center
+456 Medical Plaza Drive, Suite 200
+San Francisco, CA 94103
+
