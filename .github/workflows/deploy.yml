@@ -94,7 +94,7 @@ jobs:
             docker-compose ps
             
             # Wait for health checks and show logs if deployment fails
-            sleep 30
+            sleep 45
             if ! docker-compose ps | grep -q "Up (healthy)"; then
               echo "Deployment may have issues. Container logs:"
               docker-compose logs --tail=50
