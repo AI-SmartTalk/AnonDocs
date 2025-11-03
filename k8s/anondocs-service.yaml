@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: anondocs-api-service
+  namespace: anondocs
+  labels:
+    app: anondocs-api
+spec:
+  type: LoadBalancer # Change to NodePort or ClusterIP based on your setup
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: anondocs-api

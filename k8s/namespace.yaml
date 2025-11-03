@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: anondocs
+  labels:
+    name: anondocs
+    app: anondocs-api

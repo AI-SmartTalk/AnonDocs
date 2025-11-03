@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: anondocs-ingress
+  namespace: anondocs
+  labels:
+    app: anondocs-api
+  annotations:
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+    # cert-manager.io/cluster-issuer: letsencrypt-prod  # For HTTPS with cert-manager
+    nginx.ingress.kubernetes.io/proxy-body-size: '10m' # Max upload size
+spec:
+  ingressClassName: nginx # Change based on your ingress controller
+  rules:
+    - host: anondocs.yourdomain.com # Update with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: anondocs-api-service
+                port:
+                  number: 80
+  # tls:
+  # - hosts:
+  #   - anondocs.yourdomain.com
+  #   secretName: anondocs-tls

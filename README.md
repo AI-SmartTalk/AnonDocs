@@ -22,7 +22,26 @@ A privacy-first API for anonymizing text and documents using **open source Large
 
 ## Quick Start
 
-### Prerequisites
+### Option 1: Docker Compose (Recommended)
+
+The easiest way to get started with Ollama included:
+
+```bash
+# Start everything (API + Ollama)
+docker-compose up -d
+
+# Load the model
+docker-compose exec ollama ollama pull mistral-nemo
+
+# Test the API
+curl http://localhost:3000/health
+```
+
+📖 **Full guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### Option 2: Local Development
+
+**Prerequisites:**
 
 - Node.js 18+
 - npm or yarn
@@ -31,9 +50,8 @@ A privacy-first API for anonymizing text and documents using **open source Large
   - **vLLM** - high performance serving
   - **LM Studio** - GUI-based local models
   - **LocalAI** - OpenAI-compatible local API
-  - Any other OpenAI-compatible API serving open source models
 
-### Installation
+**Installation:**
 
 ```bash
 # Clone the repository
@@ -54,6 +72,20 @@ npm run dev
 npm run build
 npm start
 ```
+
+### Option 3: Kubernetes
+
+For production deployments:
+
+```bash
+# Deploy to Kubernetes
+kubectl apply -f k8s/
+
+# Load model
+kubectl exec -n anondocs deployment/ollama -- ollama pull mistral-nemo
+```
+
+📖 **Full guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ### Environment Configuration
 

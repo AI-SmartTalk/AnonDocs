@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: anondocs
+  labels:
+    app: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          ports:
+            - containerPort: 11434
+              name: http
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+          resources:
+            requests:
+              memory: '4Gi'
+              cpu: '2'
+            limits:
+              memory: '8Gi'
+              cpu: '4'
+              # Uncomment for GPU support
+              # nvidia.com/gpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: ollama-data
+          persistentVolumeClaim:
+            claimName: ollama-data
+      # Uncomment for GPU node selection
+      # nodeSelector:
+      #   nvidia.com/gpu: "true"
+      # tolerations:
+      # - key: nvidia.com/gpu
+      #   operator: Exists
+      #   effect: NoSchedule

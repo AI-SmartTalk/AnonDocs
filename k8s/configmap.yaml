@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anondocs-config
+  namespace: anondocs
+  labels:
+    app: anondocs-api
+data:
+  PORT: '3000'
+  NODE_ENV: 'production'
+  DEFAULT_LLM_PROVIDER: 'ollama'
+  OLLAMA_BASE_URL: 'http://ollama-service:11434'
+  OLLAMA_MODEL: 'mistral-nemo'
+  OLLAMA_TEMPERATURE: '0'
+  CHUNK_SIZE: '1500'
+  CHUNK_OVERLAP: '0'
+  ENABLE_PARALLEL_CHUNKS: 'false'

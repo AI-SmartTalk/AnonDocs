@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anondocs-api
+  namespace: anondocs
+  labels:
+    app: anondocs-api
+spec:
+  replicas: 2 # Scale based on your needs
+  selector:
+    matchLabels:
+      app: anondocs-api
+  template:
+    metadata:
+      labels:
+        app: anondocs-api
+    spec:
+      containers:
+        - name: anondocs-api
+          image: your-registry/anondocs-api:latest # Update with your image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: anondocs-config
+          resources:
+            requests:
+              memory: '512Mi'
+              cpu: '500m'
+            limits:
+              memory: '1Gi'
+              cpu: '1'
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 40
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          emptyDir: {} # Temporary storage for uploads (deleted after processing)
+
