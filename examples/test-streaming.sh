@@ -14,7 +14,7 @@ curl -X POST "$API_URL/api/stream/anonymize" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "My name is Sarah Johnson and I work at Acme Corporation. You can reach me at sarah.johnson@acme.com or call me at (555) 123-4567. I live at 456 Oak Avenue, Los Angeles, CA 90001. My employee ID is EMP-2024-001 and I started on January 15, 2020. For emergency contact, please reach out to Michael Johnson at (555) 987-6543.",
-    "provider": "ollama"
+    "provider": "openai"
   }' \
   --no-buffer
 
@@ -65,7 +65,7 @@ echo "---"
 
 curl -X POST "$API_URL/api/stream/document" \
   -F "file=@/tmp/test-stream.txt" \
-  -F "provider=ollama" \
+  -F "provider=openai" \
   --no-buffer
 
 # Cleanup

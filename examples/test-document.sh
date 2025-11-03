@@ -39,7 +39,7 @@ echo ""
 echo "Test: Uploading and anonymizing text document"
 curl -X POST "$API_URL" \
   -F "file=@/tmp/test-anon.txt" \
-  -F "provider=ollama"
+  -F "provider=openai"
 
 echo ""
 echo ""
