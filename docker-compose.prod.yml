@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   anondocs-api:
     image: ${DOCKER_USERNAME}/anondocs:latest
@@ -20,11 +18,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 2G
+          cpus: '0.8'
+          memory: 256M
         reservations:
-          cpus: '1'
-          memory: 1G
+          cpus: '0.2'
+          memory: 128M
     logging:
       driver: "json-file"
       options:
