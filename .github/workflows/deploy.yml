@@ -60,22 +60,21 @@ jobs:
             # Download docker-compose.prod.yml from the repo
             curl -o docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml
             
-            # Create production .env file
-            cat > .env << EOF
-            PORT=3000
-            NODE_ENV=production
-            DEFAULT_LLM_PROVIDER=openai
-            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            OPENAI_MODEL=gpt-4o-mini
-            OPENAI_TEMPERATURE=0
-            CHUNK_SIZE=1500
-            CHUNK_OVERLAP=0
-            ENABLE_PARALLEL_CHUNKS=false
-            EOF
-            
             # Update the docker-compose.yml to use the new image with specific SHA
-            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
             sed -i "s|\${DOCKER_USERNAME}/anondocs:latest|${{ secrets.DOCKER_USERNAME }}/anondocs:${{ github.sha }}|g" docker-compose.yml
+            
+            # Create production .env file (after sed to avoid any conflicts)
+            cat > .env << EOF
+PORT=3000
+NODE_ENV=production
+DEFAULT_LLM_PROVIDER=openai
+OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_TEMPERATURE=0
+CHUNK_SIZE=1500
+CHUNK_OVERLAP=0
+ENABLE_PARALLEL_CHUNKS=false
+EOF
             
             # Pull latest images
             docker-compose pull anondocs-api
@@ -88,7 +87,8 @@ jobs:
             
             # Clean up old images (keep last 3 versions)
             docker image prune -f
-            docker images ${{ secrets.DOCKER_USERNAME }}/anondocs --format "table {{.Repository}}:{{.Tag}}" | tail -n +4 | xargs -r docker rmi
+            FORMAT='table {{.Repository}}:{{.Tag}}'
+            docker images ${{ secrets.DOCKER_USERNAME }}/anondocs --format "$FORMAT" | tail -n +4 | xargs -r docker rmi
             
             # Show running containers
             docker-compose ps
