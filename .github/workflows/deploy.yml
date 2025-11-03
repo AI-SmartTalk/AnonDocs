@@ -57,11 +57,25 @@ jobs:
             mkdir -p ~/anondocs
             cd ~/anondocs
             
-            # Download docker-compose.yml from the repo
-            curl -o docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.yml
+            # Download docker-compose.prod.yml from the repo
+            curl -o docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.prod.yml
             
-            # Update the docker-compose.yml to use the new image
-            sed -i "s|anondocs-api:|${{ secrets.DOCKER_USERNAME }}/anondocs:${{ github.sha }}|" docker-compose.yml
+            # Create production .env file
+            cat > .env << EOF
+            PORT=3000
+            NODE_ENV=production
+            DEFAULT_LLM_PROVIDER=ollama
+            OLLAMA_BASE_URL=http://host.docker.internal:11434
+            OLLAMA_MODEL=mistral-nemo
+            OLLAMA_TEMPERATURE=0
+            CHUNK_SIZE=1500
+            CHUNK_OVERLAP=0
+            ENABLE_PARALLEL_CHUNKS=false
+            EOF
+            
+            # Update the docker-compose.yml to use the new image with specific SHA
+            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+            sed -i "s|\${DOCKER_USERNAME}/anondocs:latest|${{ secrets.DOCKER_USERNAME }}/anondocs:${{ github.sha }}|g" docker-compose.yml
             
             # Pull latest images
             docker-compose pull anondocs-api

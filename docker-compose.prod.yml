@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   anondocs-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/anondocs:latest
     container_name: anondocs-api-prod
     ports:
       - "${PORT:-3000}:3000"
