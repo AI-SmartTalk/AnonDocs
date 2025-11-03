@@ -63,18 +63,16 @@ jobs:
             # Update the docker-compose.yml to use the new image with specific SHA
             sed -i "s|\${DOCKER_USERNAME}/anondocs:latest|${{ secrets.DOCKER_USERNAME }}/anondocs:${{ github.sha }}|g" docker-compose.yml
             
-            # Create production .env file (after sed to avoid any conflicts)
-            cat > .env << EOF
-PORT=3000
-NODE_ENV=production
-DEFAULT_LLM_PROVIDER=openai
-OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_TEMPERATURE=0
-CHUNK_SIZE=1500
-CHUNK_OVERLAP=0
-ENABLE_PARALLEL_CHUNKS=false
-EOF
+            # Create production .env file
+            echo "PORT=3000" > .env
+            echo "NODE_ENV=production" >> .env
+            echo "DEFAULT_LLM_PROVIDER=openai" >> .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+            echo "OPENAI_MODEL=gpt-4o-mini" >> .env
+            echo "OPENAI_TEMPERATURE=0" >> .env
+            echo "CHUNK_SIZE=1500" >> .env
+            echo "CHUNK_OVERLAP=0" >> .env
+            echo "ENABLE_PARALLEL_CHUNKS=false" >> .env
             
             # Pull latest images
             docker-compose pull anondocs-api
