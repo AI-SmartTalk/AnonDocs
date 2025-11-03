@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { anonymizeRouter } from './routes/anonymize.routes';
+import { documentRouter } from './routes/document.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { config } from './config';
 
@@ -19,6 +20,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/anonymize', anonymizeRouter);
+app.use('/api/document', documentRouter);
 
 // Error handling
 app.use(errorHandler);
@@ -26,4 +28,5 @@ app.use(errorHandler);
 app.listen(port, () => {
   console.log(`AnonDocs API running on port ${port}`);
   console.log(`POST /api/anonymize - Anonymize text`);
+  console.log(`POST /api/document - Anonymize document (PDF/DOCX/TXT)`);
 });
