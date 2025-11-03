@@ -24,17 +24,30 @@ A privacy-first API for anonymizing text and documents using **open source Large
 
 ### Option 1: Docker Compose (Recommended)
 
-The easiest way to get started with Ollama included:
+**Development** - Uses Ollama on host machine:
 
 ```bash
-# Start everything (API + Ollama)
-docker-compose up -d
+# Make sure Ollama is running on your host
+ollama serve
+ollama pull mistral-nemo
 
-# Load the model
-docker-compose exec ollama ollama pull mistral-nemo
+# Start the API
+docker compose up -d
 
 # Test the API
 curl http://localhost:3000/health
+```
+
+**Production** - Uses .env configuration:
+
+```bash
+# Create .env from example
+cp env.production.example .env
+# Edit with your settings
+nano .env
+
+# Start production
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 📖 **Full guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)

@@ -20,23 +20,43 @@ Complete guide for deploying AnonDocs API using Docker Compose or Kubernetes.
 
 - Docker 20.10+
 - Docker Compose 2.0+
-- (Optional) NVIDIA Docker for GPU support
+- LLM provider (Ollama on host, or API keys for cloud providers)
 
-### Quick Start
+### Development (with host Ollama)
 
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
 cd anondocs-api
 
-# 2. Start services
-docker-compose up -d
+# 2. Make sure Ollama is running on your host
+ollama serve
+ollama pull mistral-nemo
 
-# 3. Check service health
-docker-compose ps
+# 3. Start the API
+docker compose up -d
 
-# 4. Pull and load the Ollama model
-docker-compose exec ollama ollama pull mistral-nemo
+# 4. Check service health
+docker compose ps
+
+# 5. Test the API
+curl http://localhost:3000/health
+```
+
+### Production (with .env configuration)
+
+```bash
+# 1. Create production environment file
+cp env.production.example .env
+
+# 2. Edit .env with your configuration
+nano .env
+
+# 3. Start production stack
+docker compose -f docker-compose.prod.yml up -d
+
+# 4. View logs
+docker compose -f docker-compose.prod.yml logs -f
 
 # 5. Test the API
 curl http://localhost:3000/health
