@@ -3,9 +3,7 @@ version: '3.8'
 services:
   # AnonDocs API
   anondocs-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME:-your-dockerhub-username}/anondocs:latest
     container_name: anondocs-api
     ports:
       - "3000:3000"
