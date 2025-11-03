@@ -1,108 +1,79 @@
-import { documentRepository } from '../repositories/document.repository';
-import { chunkRepository } from '../repositories/chunk.repository';
-import { anonymizedDocumentRepository } from '../repositories/anonymized-document.repository';
-import { parserService } from './parser.service';
 import { chunkingService } from './chunking.service';
-import { llmService, LLMProvider } from './llm.service';
-import { config } from '../config';
+import { llmService, LLMProvider, AnonymizationResult } from './llm.service';
+
+export interface AnonymizeTextRequest {
+  text: string;
+  provider?: LLMProvider;
+}
+
+export interface AnonymizeTextResponse {
+  anonymizedText: string;
+  piiDetected: AnonymizationResult['piiDetected'];
+  chunksProcessed: number;
+}
 
 export class AnonymizationService {
-  async processDocument(documentId: string, provider?: LLMProvider): Promise<void> {
+  /**
+   * Anonymize text by chunking if needed and processing each chunk with LLM
+   */
+  async anonymizeText(text: string, provider?: LLMProvider): Promise<AnonymizeTextResponse> {
     try {
-      // Update document status
-      await documentRepository.updateStatus(documentId, 'PROCESSING');
-
-      // Get document
-      const document = await documentRepository.findById(documentId);
-      if (!document) {
-        throw new Error('Document not found');
-      }
-
-      // Parse document
-      const text = await parserService.parseDocument(
-        document.filePath,
-        document.mimeType
-      );
-
       // Chunk text
       const textChunks = chunkingService.chunkText(text);
 
-      // Save chunks to database
-      await chunkRepository.createMany(
-        documentId,
-        textChunks.map((chunk, index) => ({
-          chunkIndex: index,
-          originalText: chunk,
-        }))
-      );
-
-      // Get all chunks
-      const chunks = await chunkRepository.findByDocumentId(documentId);
-
       // Process each chunk with LLM
       const anonymizedChunks: string[] = [];
-      for (const chunk of chunks) {
-        await chunkRepository.updateStatus(chunk.id, 'PROCESSING');
+      const allPiiDetected: AnonymizationResult['piiDetected'] = {
+        names: [],
+        addresses: [],
+        emails: [],
+        phoneNumbers: [],
+        dates: [],
+        organizations: [],
+        other: [],
+      };
 
-        const result = await llmService.anonymizeChunk(chunk.originalText, provider);
-
-        await chunkRepository.update(chunk.id, {
-          anonymizedText: result.anonymizedText,
-          status: 'COMPLETED',
-          piiDetected: result.piiDetected,
-        });
-
+      for (const chunk of textChunks) {
+        const result = await llmService.anonymizeChunk(chunk, provider);
         anonymizedChunks.push(result.anonymizedText);
+
+        // Aggregate PII detected across all chunks (handle missing properties)
+        if (result.piiDetected.names) {
+          allPiiDetected.names.push(...result.piiDetected.names);
+        }
+        if (result.piiDetected.addresses) {
+          allPiiDetected.addresses.push(...result.piiDetected.addresses);
+        }
+        if (result.piiDetected.emails) {
+          allPiiDetected.emails.push(...result.piiDetected.emails);
+        }
+        if (result.piiDetected.phoneNumbers) {
+          allPiiDetected.phoneNumbers.push(...result.piiDetected.phoneNumbers);
+        }
+        if (result.piiDetected.dates) {
+          allPiiDetected.dates.push(...result.piiDetected.dates);
+        }
+        if (result.piiDetected.organizations) {
+          allPiiDetected.organizations.push(...result.piiDetected.organizations);
+        }
+        if (result.piiDetected.other) {
+          allPiiDetected.other.push(...result.piiDetected.other);
+        }
       }
 
       // Combine anonymized chunks
-      const anonymizedContent = anonymizedChunks.join('\n\n');
+      const anonymizedText = anonymizedChunks.join('\n\n');
 
-      // Save anonymized document
-      const selectedProvider = provider || config.llm.defaultProvider;
-      const modelName = selectedProvider === 'openai' 
-        ? config.llm.openai?.model || 'gpt-4'
-        : selectedProvider === 'anthropic'
-        ? config.llm.anthropic?.model || 'claude-3-sonnet-20240229'
-        : config.llm.ollama?.model || 'mistral';
-
-      await anonymizedDocumentRepository.create({
-        documentId,
-        content: anonymizedContent,
-        llmProvider: selectedProvider,
-        llmModel: modelName,
-      });
-
-      // Update document status
-      await documentRepository.updateStatus(documentId, 'COMPLETED');
+      return {
+        anonymizedText,
+        piiDetected: allPiiDetected,
+        chunksProcessed: textChunks.length,
+      };
     } catch (error) {
-      console.error('Error processing document:', error);
-      await documentRepository.updateStatus(documentId, 'FAILED');
+      console.error('Error anonymizing text:', error);
       throw error;
     }
-  }
-
-  async getAnonymizedDocument(documentId: string): Promise<{
-    originalName: string;
-    content: string;
-    llmProvider: string;
-    llmModel: string;
-    createdAt: Date;
-  } | null> {
-    const document = await documentRepository.findById(documentId);
-    if (!document || !document.anonymizedDocument) {
-      return null;
-    }
-
-    return {
-      originalName: document.originalName,
-      content: document.anonymizedDocument.content,
-      llmProvider: document.anonymizedDocument.llmProvider,
-      llmModel: document.anonymizedDocument.llmModel,
-      createdAt: document.anonymizedDocument.createdAt,
-    };
   }
 }
 
 export const anonymizationService = new AnonymizationService();
-
