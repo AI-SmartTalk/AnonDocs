@@ -64,10 +64,10 @@ jobs:
             cat > .env << EOF
             PORT=3000
             NODE_ENV=production
-            DEFAULT_LLM_PROVIDER=ollama
-            OLLAMA_BASE_URL=http://host.docker.internal:11434
-            OLLAMA_MODEL=mistral-nemo
-            OLLAMA_TEMPERATURE=0
+            DEFAULT_LLM_PROVIDER=openai
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            OPENAI_MODEL=gpt-4o-mini
+            OPENAI_TEMPERATURE=0
             CHUNK_SIZE=1500
             CHUNK_OVERLAP=0
             ENABLE_PARALLEL_CHUNKS=false
