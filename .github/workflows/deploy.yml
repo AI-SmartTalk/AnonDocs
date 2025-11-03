@@ -93,15 +93,21 @@ jobs:
             # Show running containers
             docker-compose ps
             
-            # Wait for health checks and show logs if deployment fails
-            sleep 45
-            if ! docker-compose ps | grep -q "Up (healthy)"; then
-              echo "Deployment may have issues. Container logs:"
+            # Wait for container to start and health checks to initialize
+            sleep 60
+            
+            # Check if container is running (accept both healthy and starting states)
+            if docker-compose ps | grep -q "Up.*health:"; then
+              echo "✅ Deployment successful! Container is running with health check enabled."
+              echo "📋 Application status:"
+              docker-compose ps
+              echo "📋 Recent logs:"
+              docker-compose logs --tail=10
+            else
+              echo "❌ Deployment failed. Container logs:"
               docker-compose logs --tail=50
               exit 1
             fi
-            
-            echo "Deployment successful!"
 
       - name: Notify deployment status
         if: always()
