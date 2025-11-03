@@ -94,8 +94,18 @@ export class LLMService {
   }
 
   async anonymizeChunk(text: string, provider?: LLMProvider): Promise<AnonymizationResult> {
-    const selectedProvider = provider || config.llm.defaultProvider;
-    const model = this.models.get(selectedProvider);
+    const requestedProvider = provider || config.llm.defaultProvider;
+    let selectedProvider = requestedProvider;
+    let model = this.models.get(selectedProvider);
+
+    // If requested provider is not configured, fall back to default
+    if (!model && provider && provider !== config.llm.defaultProvider) {
+      console.warn(
+        `⚠️  Requested provider "${provider}" is not configured. Falling back to default provider "${config.llm.defaultProvider}".`
+      );
+      selectedProvider = config.llm.defaultProvider;
+      model = this.models.get(selectedProvider);
+    }
 
     if (!model) {
       throw new Error(
