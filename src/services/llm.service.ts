@@ -34,21 +34,25 @@ export class LLMService {
         modelName: config.llm.openai.model,
         temperature: config.llm.openai.temperature,
       };
-      
+
       // Add API key if provided (not needed for some local setups)
       if (config.llm.openai.apiKey) {
         openaiConfig.openAIApiKey = config.llm.openai.apiKey;
       }
-      
+
       // Add custom base URL if provided (for OpenAI-compatible APIs)
       if (config.llm.openai.baseURL) {
         openaiConfig.configuration = {
           baseURL: config.llm.openai.baseURL,
         };
       }
-      
+
       this.models.set('openai', new ChatOpenAI(openaiConfig));
-      console.log(`✓ OpenAI initialized: ${config.llm.openai.model}${config.llm.openai.baseURL ? ` (${config.llm.openai.baseURL})` : ''}`);
+      console.log(
+        `✓ OpenAI initialized: ${config.llm.openai.model}${
+          config.llm.openai.baseURL ? ` (${config.llm.openai.baseURL})` : ''
+        }`
+      );
     }
 
     // Initialize Anthropic
@@ -74,9 +78,11 @@ export class LLMService {
           temperature: config.llm.ollama.temperature,
         })
       );
-      console.log(`✓ Ollama initialized: ${config.llm.ollama.model} (${config.llm.ollama.baseUrl})`);
+      console.log(
+        `✓ Ollama initialized: ${config.llm.ollama.model} (${config.llm.ollama.baseUrl})`
+      );
     }
-    
+
     // Log available providers
     const providers = Array.from(this.models.keys());
     if (providers.length === 0) {
@@ -87,10 +93,7 @@ export class LLMService {
     }
   }
 
-  async anonymizeChunk(
-    text: string,
-    provider?: LLMProvider
-  ): Promise<AnonymizationResult> {
+  async anonymizeChunk(text: string, provider?: LLMProvider): Promise<AnonymizationResult> {
     const selectedProvider = provider || config.llm.defaultProvider;
     const model = this.models.get(selectedProvider);
 
@@ -103,6 +106,8 @@ export class LLMService {
 2. Replace PII with generic placeholders like [NAME], [ADDRESS], [EMAIL], [PHONE], [DATE], [ORGANIZATION]
 3. Maintain the document's structure and readability
 4. Return both the anonymized text and a JSON list of detected PII
+
+Keep the original language of the text.
 
 PII includes:
 - Personal names
@@ -157,4 +162,3 @@ Respond with a JSON object in this exact format:
 }
 
 export const llmService = new LLMService();
-

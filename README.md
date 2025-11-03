@@ -84,6 +84,8 @@ ENABLE_PARALLEL_CHUNKS=false
 
 ## API Endpoints
 
+> **🔄 Real-time Progress Tracking**: For integration teams needing progress updates, see [STREAMING_API.md](./STREAMING_API.md) for detailed SSE streaming documentation.
+
 ### 1. Anonymize Text
 
 Anonymize plain text input.
@@ -155,6 +157,30 @@ curl -X POST http://localhost:3000/api/document \
   "timestamp": "2024-11-03T12:00:00.000Z"
 }
 ```
+
+### 4. Stream Text Anonymization (SSE)
+
+**Endpoint:** `POST /api/stream/anonymize`
+
+Stream real-time progress updates via Server-Sent Events.
+
+**Request:** Same as `/api/anonymize`
+
+**Response:** `text/event-stream` with progress events
+
+📖 See [STREAMING_API.md](./STREAMING_API.md) for detailed integration guide with code examples.
+
+### 5. Stream Document Anonymization (SSE)
+
+**Endpoint:** `POST /api/stream/document`
+
+Stream real-time progress updates for document processing.
+
+**Request:** Same as `/api/document`
+
+**Response:** `text/event-stream` with progress events
+
+📖 See [STREAMING_API.md](./STREAMING_API.md) for detailed integration guide with code examples.
 
 ## Usage Examples
 

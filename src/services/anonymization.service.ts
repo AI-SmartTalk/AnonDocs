@@ -1,6 +1,7 @@
 import { chunkingService } from './chunking.service';
 import { llmService, LLMProvider, AnonymizationResult } from './llm.service';
 import { config } from '../config';
+import { EventEmitter } from 'events';
 
 export interface AnonymizeTextRequest {
   text: string;
@@ -15,11 +16,24 @@ export interface AnonymizeTextResponse {
   processingTimeMs: number;
 }
 
+export interface ProgressEvent {
+  type: 'started' | 'chunk_processing' | 'chunk_completed' | 'completed' | 'error';
+  progress: number; // 0-100
+  message: string;
+  currentChunk?: number;
+  totalChunks?: number;
+  data?: any;
+}
+
 export class AnonymizationService {
   /**
    * Anonymize text by chunking if needed and processing each chunk with LLM
    */
-  async anonymizeText(text: string, provider?: LLMProvider): Promise<AnonymizeTextResponse> {
+  async anonymizeText(
+    text: string,
+    provider?: LLMProvider,
+    progressEmitter?: EventEmitter
+  ): Promise<AnonymizeTextResponse> {
     try {
       const startTime = Date.now();
 
@@ -28,6 +42,16 @@ export class AnonymizationService {
 
       // Chunk text
       const textChunks = chunkingService.chunkText(text);
+
+      // Emit started event
+      if (progressEmitter) {
+        progressEmitter.emit('progress', {
+          type: 'started',
+          progress: 0,
+          message: 'Starting anonymization',
+          totalChunks: textChunks.length,
+        } as ProgressEvent);
+      }
 
       // Process chunks (parallel or sequential based on config)
       const allPiiDetected: AnonymizationResult['piiDetected'] = {
@@ -44,15 +68,45 @@ export class AnonymizationService {
 
       if (config.chunking.enableParallel) {
         // Process all chunks in parallel
+        if (progressEmitter) {
+          progressEmitter.emit('progress', {
+            type: 'chunk_processing',
+            progress: 10,
+            message: 'Processing all chunks in parallel',
+            totalChunks: textChunks.length,
+          } as ProgressEvent);
+        }
         results = await Promise.all(
           textChunks.map((chunk) => llmService.anonymizeChunk(chunk, provider))
         );
       } else {
         // Process chunks sequentially
         results = [];
-        for (const chunk of textChunks) {
+        for (let i = 0; i < textChunks.length; i++) {
+          const chunk = textChunks[i];
+
+          if (progressEmitter) {
+            progressEmitter.emit('progress', {
+              type: 'chunk_processing',
+              progress: Math.round((i / textChunks.length) * 90),
+              message: `Processing chunk ${i + 1} of ${textChunks.length}`,
+              currentChunk: i + 1,
+              totalChunks: textChunks.length,
+            } as ProgressEvent);
+          }
+
           const result = await llmService.anonymizeChunk(chunk, provider);
           results.push(result);
+
+          if (progressEmitter) {
+            progressEmitter.emit('progress', {
+              type: 'chunk_completed',
+              progress: Math.round(((i + 1) / textChunks.length) * 90),
+              message: `Completed chunk ${i + 1} of ${textChunks.length}`,
+              currentChunk: i + 1,
+              totalChunks: textChunks.length,
+            } as ProgressEvent);
+          }
         }
       }
 
@@ -94,15 +148,36 @@ export class AnonymizationService {
       const processingTimeMinutes = processingTimeMs / 60000;
       const wordsPerMinute = Math.round(wordCount / processingTimeMinutes);
 
-      return {
+      const response = {
         anonymizedText,
         piiDetected: allPiiDetected,
         chunksProcessed: textChunks.length,
         wordsPerMinute,
         processingTimeMs,
       };
+
+      // Emit completed event
+      if (progressEmitter) {
+        progressEmitter.emit('progress', {
+          type: 'completed',
+          progress: 100,
+          message: 'Anonymization completed',
+          data: response,
+        } as ProgressEvent);
+      }
+
+      return response;
     } catch (error) {
       console.error('Error anonymizing text:', error);
+
+      if (progressEmitter) {
+        progressEmitter.emit('progress', {
+          type: 'error',
+          progress: 0,
+          message: error instanceof Error ? error.message : 'Unknown error',
+        } as ProgressEvent);
+      }
+
       throw error;
     }
   }
