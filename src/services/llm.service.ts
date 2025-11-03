@@ -98,7 +98,10 @@ export class LLMService {
     const model = this.models.get(selectedProvider);
 
     if (!model) {
-      throw new Error(`LLM provider "${selectedProvider}" is not configured`);
+      throw new Error(
+        `LLM provider "${selectedProvider}" is not configured. ` +
+          `Please check your environment variables (${selectedProvider.toUpperCase()}_BASE_URL, ${selectedProvider.toUpperCase()}_MODEL).`
+      );
     }
 
     const systemPrompt = `You are an expert document anonymization assistant. Your task is to:
@@ -138,21 +141,72 @@ Respond with a JSON object in this exact format:
       new HumanMessage(`Anonymize the following text:\n\n${text}`),
     ];
 
-    const response = await model.invoke(messages);
-    const content = response.content.toString();
-
     try {
-      // Extract JSON from response (handle cases where LLM adds markdown formatting)
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
+      const response = await model.invoke(messages);
+      const content = response.content.toString();
+
+      try {
+        // Extract JSON from response (handle cases where LLM adds markdown formatting)
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('No JSON found in response');
+        }
+
+        const result = JSON.parse(jsonMatch[0]) as AnonymizationResult;
+        return result;
+      } catch (error) {
+        console.error('Failed to parse LLM response:', content);
+        throw new Error('Failed to parse anonymization response from LLM');
+      }
+    } catch (error: any) {
+      // Handle connection errors with helpful messages
+      if (error.cause) {
+        const cause = error.cause;
+
+        if (cause.code === 'ECONNREFUSED' || cause.code === 'ENOTFOUND') {
+          const providerInfo = this.getProviderConnectionInfo(selectedProvider);
+          throw new Error(
+            `Cannot connect to ${selectedProvider.toUpperCase()} at ${providerInfo.url}. ` +
+              `${providerInfo.suggestion}`
+          );
+        }
+
+        if (cause.code === 'ETIMEDOUT') {
+          throw new Error(
+            `Connection timeout to ${selectedProvider.toUpperCase()}. The LLM server is not responding.`
+          );
+        }
       }
 
-      const result = JSON.parse(jsonMatch[0]) as AnonymizationResult;
-      return result;
-    } catch (error) {
-      console.error('Failed to parse LLM response:', content);
-      throw new Error('Failed to parse anonymization response from LLM');
+      // Re-throw original error if not a connection issue
+      throw error;
+    }
+  }
+
+  private getProviderConnectionInfo(provider: LLMProvider): { url: string; suggestion: string } {
+    switch (provider) {
+      case 'ollama':
+        const ollamaUrl = config.llm.ollama?.baseUrl || 'not configured';
+        return {
+          url: ollamaUrl,
+          suggestion: 'Make sure Ollama is running (ollama serve) and accessible at this URL.',
+        };
+      case 'openai':
+        const openaiUrl = config.llm.openai?.baseURL || 'https://api.openai.com/v1';
+        return {
+          url: openaiUrl,
+          suggestion: 'Check your network connection and API key configuration.',
+        };
+      case 'anthropic':
+        return {
+          url: 'https://api.anthropic.com',
+          suggestion: 'Check your network connection and API key configuration.',
+        };
+      default:
+        return {
+          url: 'unknown',
+          suggestion: 'Check your provider configuration.',
+        };
     }
   }
 
