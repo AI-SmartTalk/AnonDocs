@@ -101,7 +101,13 @@ export class StreamController {
     const progressEmitter = new EventEmitter();
 
     // Listen to progress events and send via SSE
+    // BUT: Filter out 'completed' events from anonymization service - we'll send our own
     progressEmitter.on('progress', (event: ProgressEvent) => {
+      // Skip the 'completed' event from anonymization service
+      // We'll send our own after generating the DOCX
+      if (event.type === 'completed') {
+        return;
+      }
       res.write(`data: ${JSON.stringify(event)}\n\n`);
     });
 
@@ -143,6 +149,11 @@ export class StreamController {
         progressEmitter
       );
 
+      // Build final completed event
+      let finalData: any = {
+        ...result,
+      };
+
       if (isDocx) {
         // Create anonymized DOCX with formatting preserved using replacements
         const { filename } = await docxFormatterService.anonymizeDocx(
@@ -155,19 +166,20 @@ export class StreamController {
         const host = req.get('host');
         const downloadUrl = `${protocol}://${host}/api/document/download/${filename}`;
 
-        // Send final event with download URL
-        const finalEvent: ProgressEvent = {
-          type: 'completed',
-          progress: 100,
-          message: 'DOCX generated with formatting preserved',
-          data: {
-            downloadUrl,
-            filename,
-            originalFilename: req.file.originalname,
-          },
-        };
-        res.write(`data: ${JSON.stringify(finalEvent)}\n\n`);
+        // Add DOCX-specific fields
+        finalData.downloadUrl = downloadUrl;
+        finalData.filename = filename;
+        finalData.originalFilename = req.file.originalname;
       }
+
+      // Send ONE final completed event with all data
+      const finalEvent: ProgressEvent = {
+        type: 'completed',
+        progress: 100,
+        message: isDocx ? 'DOCX generated with formatting preserved' : 'Anonymization completed',
+        data: finalData,
+      };
+      res.write(`data: ${JSON.stringify(finalEvent)}\n\n`);
 
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
