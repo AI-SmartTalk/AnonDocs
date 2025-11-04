@@ -7,6 +7,11 @@ import { config } from '../config';
 
 export type LLMProvider = 'openai' | 'anthropic' | 'ollama';
 
+export interface PiiReplacement {
+  original: string;
+  anonymized: string;
+}
+
 export interface AnonymizationResult {
   anonymizedText: string;
   piiDetected: {
@@ -18,6 +23,7 @@ export interface AnonymizationResult {
     organizations: string[];
     other: string[];
   };
+  replacements: PiiReplacement[];
 }
 
 export class LLMService {
@@ -108,7 +114,7 @@ export class LLMService {
 1. Identify and remove all Personally Identifiable Information (PII) from the text
 2. Replace PII with generic placeholders like [NAME], [ADDRESS], [EMAIL], [PHONE], [DATE], [ORGANIZATION]
 3. Maintain the document's structure and readability
-4. Return both the anonymized text and a JSON list of detected PII
+4. Return both the anonymized text, a JSON list of detected PII, AND a precise mapping of what was replaced
 
 Keep the original language of the text.
 
@@ -122,6 +128,8 @@ PII includes:
 - ID numbers (social security, passport, driver's license, etc.)
 - Financial information (credit card, bank account numbers)
 
+IMPORTANT: In the "replacements" array, list EVERY single replacement you made with the EXACT original text and what you replaced it with.
+
 Respond with a JSON object in this exact format:
 {
   "anonymizedText": "the anonymized text here",
@@ -133,7 +141,11 @@ Respond with a JSON object in this exact format:
     "dates": ["list of detected dates"],
     "organizations": ["list of detected organizations"],
     "other": ["any other PII detected"]
-  }
+  },
+  "replacements": [
+    {"original": "exact original text", "anonymized": "[PLACEHOLDER]"},
+    {"original": "another original", "anonymized": "[OTHER]"}
+  ]
 }`;
 
     const messages = [

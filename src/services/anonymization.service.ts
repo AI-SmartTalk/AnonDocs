@@ -1,5 +1,5 @@
 import { chunkingService } from './chunking.service';
-import { llmService, LLMProvider, AnonymizationResult } from './llm.service';
+import { llmService, LLMProvider, AnonymizationResult, PiiReplacement } from './llm.service';
 import { config } from '../config';
 import { EventEmitter } from 'events';
 
@@ -11,6 +11,7 @@ export interface AnonymizeTextRequest {
 export interface AnonymizeTextResponse {
   anonymizedText: string;
   piiDetected: AnonymizationResult['piiDetected'];
+  replacements: PiiReplacement[];
   chunksProcessed: number;
   wordsPerMinute: number;
   processingTimeMs: number;
@@ -112,6 +113,8 @@ export class AnonymizationService {
 
       // Aggregate results
       const anonymizedChunks: string[] = [];
+      const allReplacements: PiiReplacement[] = [];
+
       for (const result of results) {
         anonymizedChunks.push(result.anonymizedText);
 
@@ -137,6 +140,11 @@ export class AnonymizationService {
         if (result.piiDetected.other) {
           allPiiDetected.other.push(...result.piiDetected.other);
         }
+
+        // Aggregate replacements
+        if (result.replacements) {
+          allReplacements.push(...result.replacements);
+        }
       }
 
       // Combine anonymized chunks
@@ -151,6 +159,7 @@ export class AnonymizationService {
       const response = {
         anonymizedText,
         piiDetected: allPiiDetected,
+        replacements: allReplacements,
         chunksProcessed: textChunks.length,
         wordsPerMinute,
         processingTimeMs,
