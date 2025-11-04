@@ -161,8 +161,8 @@ export class StreamController {
           result.replacements
         );
 
-        // Construct download URL
-        const protocol = req.protocol;
+        // Construct download URL (respect X-Forwarded-Proto from reverse proxy)
+        const protocol = req.get('x-forwarded-proto') || req.protocol;
         const host = req.get('host');
         const downloadUrl = `${protocol}://${host}/api/document/download/${filename}`;
 
