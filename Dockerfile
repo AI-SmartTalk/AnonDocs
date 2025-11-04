@@ -28,8 +28,8 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 
-# Create uploads directory
-RUN mkdir -p uploads && chown -R node:node uploads
+# Create uploads and downloads directories
+RUN mkdir -p uploads downloads && chown -R node:node uploads downloads
 
 # Switch to non-root user
 USER node
