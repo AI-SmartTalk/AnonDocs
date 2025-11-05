@@ -72,7 +72,7 @@ jobs:
             echo "OPENAI_TEMPERATURE=0" >> .env
             echo "CHUNK_SIZE=1500" >> .env
             echo "CHUNK_OVERLAP=0" >> .env
-            echo "ENABLE_PARALLEL_CHUNKS=false" >> .env
+            echo "ENABLE_PARALLEL_CHUNKS=true" >> .env
             
             # Pull latest images
             docker-compose pull anondocs-api
