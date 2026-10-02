@@ -1,0 +1,30 @@
+name: Verify core
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.event_name == 'workflow_dispatch' || vars.CORE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check DNS and public HTTPS
+        env:
+          DOMAIN: ${{ vars.ANONDOCS_DOMAIN || 'api.anondocs.aismarttalk.tech' }}
+        run: |
+          set -euo pipefail
+          [[ "$DOMAIN" =~ ^[A-Za-z0-9][A-Za-z0-9.-]+[A-Za-z0-9]$ ]]
+          addresses=$(dig +short A "$DOMAIN" | sort -u)
+          [[ -z "$(dig +short AAAA "$DOMAIN")" ]] || { echo 'Remove stale AAAA or configure verified core IPv6'; exit 1; }
+          [[ "$addresses" = 212.132.108.151 ]] || { echo 'DNS does not point exclusively to core'; exit 1; }
+          for _ in {1..20}; do
+            if curl -fsS --max-time 10 "https://$DOMAIN/health"; then
+              echo 'Public HTTPS verified on core' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1

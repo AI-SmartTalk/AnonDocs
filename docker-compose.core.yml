@@ -1,0 +1,42 @@
+name: anondocs
+
+services:
+  anondocs-api:
+    image: "${APP_IMAGE:?APP_IMAGE must be an immutable image digest}"
+    container_name: anondocs-api-prod
+    expose: ["3000"]
+    env_file: [.env]
+    environment:
+      PORT: "3000"
+      NODE_ENV: production
+      VIRTUAL_HOST: "${ANONDOCS_DOMAIN:?API domain required}"
+      VIRTUAL_PORT: "3000"
+      LETSENCRYPT_HOST: "${ANONDOCS_DOMAIN}"
+      LETSENCRYPT_EMAIL: "${ACME_EMAIL:-pierre-antoine@aismarttalk.tech}"
+    volumes:
+      - uploads-data:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "const r=require('http').get('http://127.0.0.1:3000/health',r=>{r.resume();process.exit(r.statusCode===200?0:1)});r.setTimeout(5000,()=>{r.destroy();process.exit(1)});r.on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+    mem_limit: "${MEM_LIMIT:-512m}"
+    cpus: "${CPUS:-1.0}"
+    pids_limit: 256
+    stop_grace_period: 60s
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    networks: [edge]
+
+volumes:
+  uploads-data:
+
+networks:
+  edge:
+    external: true
+    name: ai-toolkit-network
