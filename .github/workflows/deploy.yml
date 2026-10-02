@@ -35,8 +35,11 @@ jobs:
   image:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    concurrency:
+      group: core-image-${{ github.repository }}-${{ github.sha }}
+      cancel-in-progress: false
     outputs:
-      image: ${{ steps.publish.outputs.image }}
+      image: ${{ steps.existing.outputs.image || steps.publish.outputs.image }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate inputs
@@ -53,11 +56,30 @@ jobs:
           if [[ "$DEPLOY" = true ]]; then
             [[ "$DOMAIN" =~ ^[A-Za-z0-9][A-Za-z0-9.-]+[A-Za-z0-9]$ ]] || { echo 'Configure the API domain'; exit 2; }
           fi
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/setup-buildx-action@v3
       - name: Image name
         id: ref
-        run: echo "tag=ghcr.io/${GITHUB_REPOSITORY,,}:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+        run: echo "tag=ghcr.io/${GITHUB_REPOSITORY,,}:core-$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+      - name: Reuse the tested commit image
+        id: existing
+        env:
+          IMAGE: ${{ steps.ref.outputs.tag }}
+        run: |
+          if docker pull "$IMAGE" > "$RUNNER_TEMP/image-pull.log" 2>&1; then
+            digest=$(docker image inspect "$IMAGE" --format '{{index .RepoDigests 0}}')
+            [[ "$digest" =~ @sha256:[a-f0-9]{64}$ ]]
+            echo "image=$digest" >> "$GITHUB_OUTPUT"
+          elif ! grep -qiE 'manifest unknown|no such manifest|not found|denied|unauthorized' "$RUNNER_TEMP/image-pull.log"; then
+            echo 'Registry lookup failed; refusing to replace a possibly existing commit image.'
+            exit 1
+          fi
       - uses: docker/build-push-action@v6
+        if: steps.existing.outputs.image == ''
         with:
           context: .
           load: true
@@ -66,6 +88,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Test the production image
+        if: steps.existing.outputs.image == ''
         env:
           APP: anondocs
           IMAGE: ${{ steps.ref.outputs.tag }}
@@ -103,12 +126,8 @@ jobs:
             [[ "$code" = 400 ]]
             SMOKE_CONTAINER=app-ci bash deploy/core/infra/scripts/smoke-app.sh anondocs
           fi
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish the tested image
+        if: steps.existing.outputs.image == ''
         id: publish
         env:
           IMAGE: ${{ steps.ref.outputs.tag }}
