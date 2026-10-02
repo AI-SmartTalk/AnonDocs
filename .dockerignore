@@ -54,3 +54,7 @@ docker-compose*.yml
 # Kubernetes files
 k8s/
 kubernetes/
+
+.env.*
+secrets/
+.migration*

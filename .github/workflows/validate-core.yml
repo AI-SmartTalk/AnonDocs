@@ -1,0 +1,26 @@
+name: Validate core deployment
+on:
+  pull_request:
+    paths: ['.github/workflows/**', 'deploy/**', 'docker-compose.core.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose
+        env:
+          API_KEY: ci-test-key
+          APP_IMAGE: ghcr.io/ai-smarttalk/anondocs@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          PDF_DOMAIN: pdf.aismarttalk.tech
+          ANONDOCS_DOMAIN: api.anondocs.aismarttalk.tech
+        run: |
+          touch .env
+          docker compose -f docker-compose.core.yml config --quiet
+      - name: Shell and Actions checks
+        run: |
+          shellcheck deploy/core/infra/scripts/*.sh
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          "$(go env GOPATH)/bin/actionlint"

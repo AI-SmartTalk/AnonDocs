@@ -1,0 +1,64 @@
+# Neutral host edge proxy — owns 80/443 and terminates TLS for EVERY app on the
+# VPS. It is intentionally app-agnostic: it contains NO per-app vhost config.
+#
+# Each app advertises ITSELF via VIRTUAL_HOST / LETSENCRYPT_HOST labels on the
+# shared external `ai-toolkit-network`; nginx-proxy auto-discovers it and
+# acme-companion obtains + renews a Let's Encrypt cert per domain. No app config
+# lives here, and this proxy lives in NEITHER app repo — so any number of
+# projects coexist on the single-IP box without fighting over the web ports.
+#
+# `name:` + service/volume names are pinned so an already-running stack (e.g. the
+# one bootstrapped by hand under /opt/proxy) is ADOPTED as-is — no cert reissue.
+name: edge-proxy
+
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:1.6
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    labels:
+      # Lets acme-companion auto-detect this container as the proxy to reload.
+      - "com.github.nginx-proxy.nginx"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - ./conf.d/uploads.conf:/etc/nginx/conf.d/zz-uploads.conf:ro
+    networks:
+      - edge
+
+  acme-companion:
+    image: nginxproxy/acme-companion:2.4
+    container_name: acme-companion
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+    environment:
+      # Fallback contact for certs whose container didn't set LETSENCRYPT_EMAIL.
+      DEFAULT_EMAIL: ${ACME_DEFAULT_EMAIL:-pierre-antoine@aismarttalk.tech}
+    networks:
+      - edge
+
+volumes:
+  certs:
+  vhost:
+  html:
+  acme:
+
+networks:
+  # The shared host network every app joins. Created by ../bootstrap.sh (external
+  # so it is owned by the host, not by this compose project — apps reference it by
+  # name and must NOT recreate it).
+  edge:
+    external: true
+    name: ai-toolkit-network
