@@ -31,6 +31,13 @@ case "$app" in
 })().catch(error => { console.error(error.message); process.exitCode = 1; });
 JS
     ;;
+  anondocs-website)
+    docker exec "${SMOKE_CONTAINER:-anondocs-website}" sh -ec '
+      for route in health / fr/ es/ de/; do
+        wget -q -O /dev/null "http://127.0.0.1:8080/$route"
+      done
+    '
+    ;;
   *) exit 2;;
 esac
 echo 'Functional synthetic checks passed.'

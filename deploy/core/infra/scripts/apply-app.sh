@@ -7,6 +7,7 @@ app=${1:?app}; release=${2:?release directory}; image=${3:?immutable image}; dom
 case "$app" in
   md-to-pdf) path=/opt/md-to-pdf; container=md-to-pdf; domain_var=PDF_DOMAIN;;
   anondocs) path=/opt/anondocs; container=anondocs-api-prod; domain_var=ANONDOCS_DOMAIN;;
+  anondocs-website) path=/opt/anondocs-website; container=anondocs-website; domain_var=WEBSITE_DOMAIN;;
   *) exit 2;;
 esac
 [[ "$domain" =~ ^[A-Za-z0-9][A-Za-z0-9.-]+[A-Za-z0-9]$ ]] || { echo 'Invalid domain' >&2; exit 2; }
@@ -31,6 +32,7 @@ if [[ -s "$release/app.env" ]]; then
   cp "$release/app.env" "$path/.env.incoming"
   DEPLOY_PATH="$path" bash "$SCRIPT_DIR/merge-env.sh"
 fi
+if [[ "$app" = anondocs-website && ! -s "$path/.env" ]]; then printf '# Public static site configuration\n' > "$path/.env"; fi
 [[ -s "$path/.env" ]] || { echo 'Supply application env or a source migration' >&2; exit 1; }
 # CI owns these keys; application credentials are preserved.
 printf '

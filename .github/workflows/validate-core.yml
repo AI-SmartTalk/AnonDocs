@@ -16,6 +16,7 @@ jobs:
           APP_IMAGE: ghcr.io/ai-smarttalk/anondocs@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           PDF_DOMAIN: pdf.aismarttalk.tech
           ANONDOCS_DOMAIN: api.anondocs.aismarttalk.tech
+          WEBSITE_DOMAIN: anondocs.aismarttalk.tech
         run: |
           touch .env
           docker compose -f docker-compose.core.yml config --quiet

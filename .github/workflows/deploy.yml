@@ -46,10 +46,11 @@ jobs:
         env:
           APP: anondocs
           DOMAIN: ${{ vars.ANONDOCS_DOMAIN || 'api.anondocs.aismarttalk.tech' }}
-          DEPLOY: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && vars.CORE_DEPLOY_ENABLED == 'true') }}
+          DEPLOY: ${{ (github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.CORE_DEPLOY_ENABLED == 'true') }}
           MIGRATE: ${{ github.event_name == 'workflow_dispatch' && inputs.migrate }}
         run: |
-          case "$APP" in md-to-pdf|anondocs) ;; *) exit 2;; esac
+          case "$APP" in md-to-pdf|anondocs|anondocs-website) ;; *) exit 2;; esac
+          if [[ "$APP" = anondocs-website && "$MIGRATE" = true ]]; then echo 'Static sites have no source state to import'; exit 2; fi
           if [[ "$MIGRATE" = true && "$DEPLOY" != true ]]; then
             echo 'Migration requires deploy=true'; exit 2
           fi
@@ -102,7 +103,7 @@ jobs:
               --mount "type=bind,source=$GITHUB_WORKSPACE/deploy/run-core.sh,target=/usr/local/bin/run-core.sh,readonly" \
               --entrypoint /bin/sh -e API_KEY=ci-test-key -e PDF_MAX_CONCURRENCY=1 -e XDG_CACHE_HOME=/tmp/.cache "$IMAGE" /usr/local/bin/run-core.sh
             URL=http://127.0.0.1:18000/api/health
-          else
+          elif [[ "$APP" = anondocs ]]; then
             docker network create app-ci
             docker run -d --name llm-fixture --network app-ci \
               --mount "type=bind,source=$GITHUB_WORKSPACE/deploy/core/infra/tests/ollama-fixture.cjs,target=/fixture.cjs,readonly" \
@@ -110,6 +111,11 @@ jobs:
             docker run -d --name app-ci --network app-ci -p 127.0.0.1:18000:3000 \
               --memory=512m --cpus=1 --cap-drop=ALL --security-opt=no-new-privileges:true \
               -e DEFAULT_LLM_PROVIDER=ollama -e OLLAMA_BASE_URL=http://llm-fixture:11434 -e OLLAMA_MODEL=fixture "$IMAGE"
+            URL=http://127.0.0.1:18000/health
+          else
+            docker run -d --name app-ci -p 127.0.0.1:18000:8080 \
+              --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m,mode=1777 \
+              --memory=256m --cpus=0.5 --pids-limit=128 --cap-drop=ALL --security-opt=no-new-privileges:true "$IMAGE"
             URL=http://127.0.0.1:18000/health
           fi
           healthy=false
@@ -120,11 +126,13 @@ jobs:
           [[ "$healthy" = true ]] || { docker logs app-ci; exit 1; }
           if [[ "$APP" = md-to-pdf ]]; then
             API_KEY=ci-test-key bash deploy/test-core-api.sh http://127.0.0.1:18000
-          else
+          elif [[ "$APP" = anondocs ]]; then
             # Validate API + SSE using a deterministic local provider; no external LLM calls.
             code=$(curl -s -o /tmp/invalid.json -w '%{http_code}' -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:18000/api/anonymize)
             [[ "$code" = 400 ]]
             SMOKE_CONTAINER=app-ci bash deploy/core/infra/scripts/smoke-app.sh anondocs
+          else
+            bash deploy/test-core-site.sh http://127.0.0.1:18000
           fi
       - name: Publish the tested image
         if: steps.existing.outputs.image == ''
@@ -138,7 +146,7 @@ jobs:
           echo "image=$digest" >> "$GITHUB_OUTPUT"
 
   deploy:
-    if: (github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && vars.CORE_DEPLOY_ENABLED == 'true')
+    if: (github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.CORE_DEPLOY_ENABLED == 'true')
     needs: image
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -229,7 +237,7 @@ jobs:
           {
             echo "Application: $APP"
             echo "Image: $IMAGE"
-            echo "Target ready over Docker HTTP. Change the API domain A record to 212.132.108.151 on OVH."
+            echo "Target ready over Docker HTTP. Change the domain A record to 212.132.108.151 on OVH."
             echo "HTTPS certificate issuance starts when DNS points to the target."
             echo "Run Verify core after DNS propagation: https://$DOMAIN"
           } >> "$GITHUB_STEP_SUMMARY"

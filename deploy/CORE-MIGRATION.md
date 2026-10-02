@@ -12,4 +12,4 @@ Procédure, secrets et limites : [aist-infra / CORE-MIGRATION.md](https://github
 
 Les fichiers `deploy/core/infra` et les workflows de déploiement/vérification sont
 générés par `aist-infra/scripts/sync-app-deploy.py` ; modifier leur source dans
-le dépôt infra puis régénérer les deux applications.
+le dépôt infra puis régénérer les trois applications.

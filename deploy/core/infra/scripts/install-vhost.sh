@@ -5,6 +5,7 @@ app=${1:?}; domain=${2:?}
 case "$app" in
  md-to-pdf) body=12m; timeout=180s;;
  anondocs) body=27m; timeout=600s;;
+ anondocs-website) body=1m; timeout=60s;;
  *) exit 2;;
 esac
 work=$(mktemp -d)
