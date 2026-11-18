@@ -94,8 +94,10 @@ jobs:
             # Wait for container to start and health checks to initialize
             sleep 60
             
-            # Check if container is running (accept both healthy and starting states)
-            if docker-compose ps | grep -q "Up.*health:"; then
+            # `(healthy)` ne contient pas `health:` : l'ancien motif déclarait en
+            # échec tout conteneur passé sain en moins de 60 s.
+            STATUS=$(docker-compose ps anondocs-api)
+            if echo "$STATUS" | grep -q "Up" && ! echo "$STATUS" | grep -q "unhealthy"; then
               echo "✅ Deployment successful! Container is running with health check enabled."
               echo "📋 Application status:"
               docker-compose ps
