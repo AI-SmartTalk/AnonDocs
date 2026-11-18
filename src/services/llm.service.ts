@@ -4,6 +4,8 @@ import { ChatOllama } from '@langchain/community/chat_models/ollama';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { config } from '../config';
+import { ClientSafeError } from '../utils/client-error';
+import { providerHealthService } from './provider-health.service';
 
 export type LLMProvider = 'openai' | 'anthropic' | 'ollama';
 
@@ -104,10 +106,11 @@ export class LLMService {
     const model = this.models.get(selectedProvider);
 
     if (!model) {
-      throw new Error(
-        `LLM provider "${selectedProvider}" is not configured. ` +
-          `Please check your environment variables (${selectedProvider.toUpperCase()}_BASE_URL, ${selectedProvider.toUpperCase()}_MODEL).`
+      console.error(
+        `LLM provider "${selectedProvider}" is not configured ` +
+          `(${selectedProvider.toUpperCase()}_* environment variables).`
       );
+      throw new ClientSafeError(`LLM provider "${selectedProvider}" is not available.`);
     }
 
     const systemPrompt = `You are an expert document anonymization assistant. Your task is to:
@@ -154,7 +157,14 @@ Respond with a JSON object in this exact format:
     ];
 
     try {
-      const response = await model.invoke(messages);
+      let response;
+      try {
+        response = await model.invoke(messages);
+      } catch (error) {
+        providerHealthService.recordFailure(selectedProvider, error);
+        throw error;
+      }
+      providerHealthService.recordSuccess(selectedProvider);
       const content = response.content.toString();
 
       try {
@@ -168,7 +178,7 @@ Respond with a JSON object in this exact format:
         return result;
       } catch (error) {
         console.error('Failed to parse LLM response:', content);
-        throw new Error('Failed to parse anonymization response from LLM');
+        throw new ClientSafeError('Failed to parse anonymization response from LLM');
       }
     } catch (error: any) {
       // Handle connection errors with helpful messages

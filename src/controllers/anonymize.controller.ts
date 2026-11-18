@@ -1,3 +1,4 @@
+import { toClientMessage } from '../utils/client-error';
 import { Request, Response } from 'express';
 import { anonymizationService } from '../services/anonymization.service';
 import { LLMProvider } from '../services/llm.service';
@@ -39,7 +40,7 @@ export class AnonymizeController {
       console.error('Error in anonymizeText controller:', error);
       res.status(500).json({
         error: 'Failed to anonymize text',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: toClientMessage(error),
       });
     }
   }

@@ -1,3 +1,4 @@
+import { toClientMessage } from '../utils/client-error';
 import { Request, Response } from 'express';
 import { EventEmitter } from 'events';
 import { anonymizationService, ProgressEvent } from '../services/anonymization.service';
@@ -56,10 +57,11 @@ export class StreamController {
       res.write('data: [DONE]\n\n');
       res.end();
     } catch (error) {
+      console.error('Error in stream anonymization:', error);
       const errorEvent: ProgressEvent = {
         type: 'error',
         progress: 0,
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: toClientMessage(error),
       };
       res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
       res.end();
@@ -193,10 +195,11 @@ export class StreamController {
         fs.unlinkSync(req.file.path);
       }
 
+      console.error('Error in stream document anonymization:', error);
       const errorEvent: ProgressEvent = {
         type: 'error',
         progress: 0,
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: toClientMessage(error),
       };
       res.write(`data: ${JSON.stringify(errorEvent)}\n\n`);
       res.end();
