@@ -6,6 +6,10 @@ export const config = {
   server: {
     port: parseInt(process.env.PORT || '3000', 10),
     nodeEnv: process.env.NODE_ENV || 'development',
+    // Nombre de proxys de confiance devant l'API (nginx en prod).
+    trustProxy: parseInt(process.env.TRUST_PROXY || '1', 10),
+    // Appels /api par IP et par minute : chaque appel coûte un appel LLM.
+    rateLimitPerMinute: parseInt(process.env.RATE_LIMIT_PER_MINUTE || '30', 10),
   },
   llm: {
     // OpenAI or OpenAI-compatible APIs (LocalAI, LM Studio, etc.)

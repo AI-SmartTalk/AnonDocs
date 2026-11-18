@@ -1,3 +1,4 @@
+import { toClientMessage } from '../utils/client-error';
 import { Request, Response } from 'express';
 import { anonymizationService } from '../services/anonymization.service';
 import { parserService } from '../services/parser.service';
@@ -50,7 +51,7 @@ export class DocumentController {
       console.error('Error in anonymizeDocument controller:', error);
       res.status(500).json({
         error: 'Failed to anonymize document',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: toClientMessage(error),
       });
     }
   }
@@ -185,7 +186,6 @@ export class DocumentController {
       if (!res.headersSent) {
         res.status(500).json({
           error: 'Failed to download file',
-          message: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
